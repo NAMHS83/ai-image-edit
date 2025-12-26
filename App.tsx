@@ -4,8 +4,12 @@ import { AIModelVersion, EditMode, AppState } from './types';
 import ModelSelector from './components/ModelSelector';
 import ImageUploader from './components/ImageUploader';
 import SceneEditor from './components/SceneEditor';
+import LoginPage from './components/LoginPage';
 
 const App: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  
   const [state, setState] = useState<AppState>({
     version: null,
     sceneImage: null,
@@ -19,11 +23,28 @@ const App: React.FC = () => {
     maskImage: null,
   });
 
+  const handleLogin = async () => {
+    // Check for API key presence upon login
+    try {
+      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+      setHasApiKey(hasKey);
+    } catch (e) {
+      console.error("Failed to check API key:", e);
+      setHasApiKey(false);
+    }
+    setIsLoggedIn(true);
+  };
+
   const handleSelectVersion = async (version: AIModelVersion) => {
+    // Double check logic: if pro is selected but no key, force key selection
+    // (This is a fallback, the UI should prevent this)
     if (version === AIModelVersion.PRO) {
       const hasKey = await (window as any).aistudio.hasSelectedApiKey();
       if (!hasKey) {
+        // Since the prompt requested to DISABLE the menu if no key, 
+        // we generally shouldn't reach here via UI click, but for safety:
         await (window as any).aistudio.openSelectKey();
+        return; 
       }
     }
     setState(prev => ({ ...prev, version }));
@@ -48,8 +69,12 @@ const App: React.FC = () => {
     });
   };
 
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   if (!state.version) {
-    return <ModelSelector onSelect={handleSelectVersion} />;
+    return <ModelSelector onSelect={handleSelectVersion} hasApiKey={hasApiKey} />;
   }
 
   if (!state.sceneImage) {

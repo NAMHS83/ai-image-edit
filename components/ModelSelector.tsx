@@ -4,11 +4,12 @@ import { AIModelVersion } from '../types';
 
 interface ModelSelectorProps {
   onSelect: (version: AIModelVersion) => void;
+  hasApiKey: boolean;
 }
 
-const ModelSelector: React.FC<ModelSelectorProps> = ({ onSelect }) => {
+const ModelSelector: React.FC<ModelSelectorProps> = ({ onSelect, hasApiKey }) => {
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 animate-fade-in">
       <div className="max-w-4xl w-full text-center mb-12">
         <h1 className="text-5xl font-extrabold text-white mb-4 tracking-tight">
           Ajou GV AI studio
@@ -39,13 +40,27 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onSelect }) => {
 
         {/* Pro Version */}
         <div 
-          onClick={() => onSelect(AIModelVersion.PRO)}
-          className="bg-zinc-900 p-8 rounded-3xl border-2 border-zinc-800 shadow-sm hover:shadow-2xl hover:border-indigo-500 transition-all cursor-pointer group relative overflow-hidden"
+          onClick={() => hasApiKey && onSelect(AIModelVersion.PRO)}
+          className={`bg-zinc-900 p-8 rounded-3xl border-2 shadow-sm transition-all relative overflow-hidden group
+            ${hasApiKey 
+              ? 'border-zinc-800 hover:shadow-2xl hover:border-indigo-500 cursor-pointer' 
+              : 'border-zinc-800 opacity-60 cursor-not-allowed grayscale'
+            }`}
         >
+          {!hasApiKey && (
+            <div className="absolute inset-0 bg-black/50 z-10 flex flex-col items-center justify-center backdrop-blur-[1px]">
+              <div className="bg-zinc-800 p-4 rounded-full mb-3 shadow-xl">
+                <svg className="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </div>
+              <p className="text-white font-bold text-lg">이용 불가</p>
+              <p className="text-zinc-400 text-sm mt-1">연동된 API Key가 없습니다</p>
+            </div>
+          )}
+
           <div className="absolute top-4 right-4 bg-indigo-900/50 text-indigo-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
             Premium
           </div>
-          <div className="w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 transition-colors">
+          <div className={`w-12 h-12 bg-indigo-950 rounded-2xl flex items-center justify-center mb-6 transition-colors ${hasApiKey ? 'group-hover:bg-indigo-600' : ''}`}>
             <span className="text-2xl">⚡</span>
           </div>
           <h2 className="text-2xl font-bold text-zinc-100 mb-2">Nano Banana Pro</h2>
@@ -55,15 +70,27 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onSelect }) => {
             <li className="flex items-center gap-2 text-indigo-400 font-medium">✓ 복잡한 가구 합성 최적화</li>
             <li className="flex items-center gap-2 text-indigo-400 font-medium">✓ 정교한 물리 조명 연산</li>
           </ul>
-          <button className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-500 transition-colors">
-            Pro 버전 시작하기
+          <button 
+            disabled={!hasApiKey}
+            className={`w-full py-4 rounded-xl font-semibold transition-colors ${
+              hasApiKey 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-500' 
+                : 'bg-zinc-800 text-zinc-500'
+            }`}
+          >
+            {hasApiKey ? 'Pro 버전 시작하기' : 'API Key 필요'}
           </button>
         </div>
       </div>
       
       <p className="mt-12 text-zinc-500 text-xs text-center max-w-md">
-        Pro 버전은 Google AI Studio의 빌딩 설정이 완료된 API Key가 필요할 수 있습니다.
+        API Key 관리 메뉴에서 키를 등록하면 Pro 버전을 사용할 수 있습니다.
       </p>
+
+      <style>{`
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+      `}</style>
     </div>
   );
 };
