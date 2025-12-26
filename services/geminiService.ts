@@ -29,6 +29,23 @@ const getSupportedAspectRatio = (width: number, height: number): "1:1" | "3:4" |
   return undefined;
 };
 
+export const testConnection = async (): Promise<boolean> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return false;
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    // Use a lightweight text model for quick connection testing
+    await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: { parts: [{ text: 'ping' }] },
+    });
+    return true;
+  } catch (e) {
+    console.error("Connection test failed:", e);
+    return false;
+  }
+};
+
 export const editSceneImage = async (
   version: AIModelVersion,
   sceneBase64: string,

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AppState, EditMode } from '../types';
-import { editSceneImage } from '../services/geminiService';
+import { editSceneImage, testConnection } from '../services/geminiService';
 import ImageUploader from './ImageUploader';
 
 interface SceneEditorProps {
@@ -15,6 +15,8 @@ const SceneEditor: React.FC<SceneEditorProps> = ({ state, setState, onReset }) =
   const [isDrawing, setIsDrawing] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
   const [maskOpacity, setMaskOpacity] = useState(0.6); // Default 60%
+  const [showSettings, setShowSettings] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   
   // History State
   const [history, setHistory] = useState<string[]>([]);
@@ -198,6 +200,22 @@ const SceneEditor: React.FC<SceneEditorProps> = ({ state, setState, onReset }) =
     }
   };
 
+  const handleOpenKeyManager = async () => {
+    try {
+      await (window as any).aistudio.openSelectKey();
+      // Reset test status after opening key manager as the key might have changed
+      setConnectionStatus('idle');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setConnectionStatus('loading');
+    const result = await testConnection();
+    setConnectionStatus(result ? 'success' : 'error');
+  };
+
   const handleFurnitureUpload = (base64: string) => setState(prev => ({ ...prev, furnitureImage: base64 }));
   const handleMaterialUpload = (base64: string) => setState(prev => ({ ...prev, materialImage: base64 }));
   const handleDesignReferenceUpload = (base64: string) => setState(prev => ({ ...prev, designReferenceImage: base64 }));
@@ -205,7 +223,7 @@ const SceneEditor: React.FC<SceneEditorProps> = ({ state, setState, onReset }) =
   const canDraw = !state.resultImage && !state.isProcessing && !isComparing;
 
   return (
-    <div className="flex h-screen bg-black overflow-hidden">
+    <div className="flex h-screen bg-black overflow-hidden relative">
       {/* Sidebar */}
       <div className="w-80 bg-zinc-900 border-r border-zinc-800 flex flex-col p-6 shadow-2xl z-20">
         <div className="flex items-center justify-between mb-8">
@@ -352,10 +370,15 @@ const SceneEditor: React.FC<SceneEditorProps> = ({ state, setState, onReset }) =
 
         <div className="pt-6 mt-6 border-t border-zinc-800 space-y-4">
           {error && <div className="p-3 bg-red-900/20 text-red-400 text-xs rounded-lg border border-red-900/30">{error}</div>}
-          <button onClick={clearAllEdits} className="w-full py-3 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl font-bold hover:bg-red-900/20 hover:text-red-400 transition-all flex items-center justify-center gap-2 text-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            모든 수정내용 리셋
-          </button>
+          <div className="flex gap-2">
+            <button onClick={clearAllEdits} className="flex-1 py-3 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl font-bold hover:bg-red-900/20 hover:text-red-400 transition-all flex items-center justify-center gap-2 text-sm">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              리셋
+            </button>
+            <button onClick={() => setShowSettings(true)} className="w-12 py-3 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl font-bold hover:bg-zinc-700 hover:text-indigo-400 transition-all flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+          </div>
 
           <button onClick={handleGenerate} disabled={state.isProcessing} className={`w-full py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${state.isProcessing ? 'bg-zinc-700 text-zinc-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}>
             {state.isProcessing ? 'AI가 수정 중...' : '수정 이미지 생성하기'}
@@ -431,6 +454,44 @@ const SceneEditor: React.FC<SceneEditorProps> = ({ state, setState, onReset }) =
           </div>
         )}
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-zinc-900 border border-zinc-700 w-96 rounded-3xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-zinc-100">설정</h3>
+              <button onClick={() => setShowSettings(false)} className="text-zinc-500 hover:text-zinc-300">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-zinc-800 rounded-2xl border border-zinc-700">
+                <h4 className="text-sm font-bold text-zinc-300 mb-2">API 설정</h4>
+                <p className="text-xs text-zinc-500 mb-4">Google AI Studio를 통해 API Key를 안전하게 관리합니다.</p>
+                <button onClick={handleOpenKeyManager} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors">
+                  API Key 관리 / 변경
+                </button>
+              </div>
+
+              <div className="p-4 bg-zinc-800 rounded-2xl border border-zinc-700">
+                <h4 className="text-sm font-bold text-zinc-300 mb-2">연결 상태</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs text-zinc-400">Gemini API 연결 확인</span>
+                  {connectionStatus === 'loading' && <span className="text-xs text-indigo-400 font-bold">테스트 중...</span>}
+                  {connectionStatus === 'success' && <span className="text-xs text-green-400 font-bold">연결 성공</span>}
+                  {connectionStatus === 'error' && <span className="text-xs text-red-400 font-bold">연결 실패</span>}
+                  {connectionStatus === 'idle' && <span className="text-xs text-zinc-600">-</span>}
+                </div>
+                <button onClick={handleTestConnection} disabled={connectionStatus === 'loading'} className="w-full py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
+                  연결 테스트
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
