@@ -24,7 +24,14 @@ const App: React.FC = () => {
   });
 
   const handleLogin = async () => {
-    // Check for API key presence upon login
+    // 1. Immediately open the external API Key selection window upon login
+    try {
+      await (window as any).aistudio.openSelectKey();
+    } catch (e) {
+      console.log("Key selection dialog closed or error", e);
+    }
+
+    // 2. Check if a key was successfully selected
     try {
       const hasKey = await (window as any).aistudio.hasSelectedApiKey();
       setHasApiKey(hasKey);
@@ -32,17 +39,16 @@ const App: React.FC = () => {
       console.error("Failed to check API key:", e);
       setHasApiKey(false);
     }
+
+    // 3. Complete login process
     setIsLoggedIn(true);
   };
 
   const handleSelectVersion = async (version: AIModelVersion) => {
     // Double check logic: if pro is selected but no key, force key selection
-    // (This is a fallback, the UI should prevent this)
     if (version === AIModelVersion.PRO) {
       const hasKey = await (window as any).aistudio.hasSelectedApiKey();
       if (!hasKey) {
-        // Since the prompt requested to DISABLE the menu if no key, 
-        // we generally shouldn't reach here via UI click, but for safety:
         await (window as any).aistudio.openSelectKey();
         return; 
       }
