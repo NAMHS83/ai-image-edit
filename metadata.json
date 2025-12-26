@@ -1,0 +1,7 @@
+{
+  "name": "Ajou GV AI Edit",
+  "description": "An advanced interior design and scene editing application using Gemini AI to modify materials, erase objects, add furniture, and redesign spaces while preserving image aspect ratios.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
